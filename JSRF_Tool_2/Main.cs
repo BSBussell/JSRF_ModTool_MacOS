@@ -2009,7 +2009,7 @@ namespace JSRF_ModTool
             switch (dxt_format)
             {
                 case 1:
-                    dxt_compression_type = "1";
+                    dxt_compression_type = "dxt1";
                     compressionFormat = DDS_CompressionFormat.DXT1;
                     break;
 
@@ -2091,8 +2091,11 @@ namespace JSRF_ModTool
             }
 
 
-            // if texture is swizzeled
-            if (swizzled == 1)
+            // For compressed DXT textures, avoid unswizzle and treat payload as regular DDS block data.
+            bool should_unswizzle = (swizzled == 1) && (dxt_compression_type != "dxt1" && dxt_compression_type != "dxt3");
+
+            // if texture is swizzled and not DXT-compressed
+            if (should_unswizzle)
             {
                 byte[] data_unswizz = DataFormats.Xbox.TextureSwizzle.QuadtreeUnswizzle(data_noheader, res_x);
                 //byte[] dds_header_1 = GenerateDdsHeader(compressionFormat, res_x, mipmap_count);
@@ -3442,6 +3445,10 @@ namespace JSRF_ModTool
 
             switch (dxt_format)
             {
+                case 1:
+                    dxt_compression_type = "dxt1";
+                    break;
+
                 case 5:
                     dxt_compression_type = "dxt1";
                     break;
@@ -3549,6 +3556,8 @@ namespace JSRF_ModTool
             texture_header[21] = wb[1];
             texture_header[22] = wb[2];
             texture_header[23] = wb[3];
+            // Import path writes unswizzled payload, so mark as unswizzled.
+            texture_header[26] = 0;
 
 
             // copy jsrf texture header to new_texture
