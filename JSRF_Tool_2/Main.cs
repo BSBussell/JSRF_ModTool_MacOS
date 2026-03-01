@@ -2009,7 +2009,7 @@ namespace JSRF_ModTool
             switch (dxt_format)
             {
                 case 1:
-                    dxt_compression_type = "dxt1";
+                    dxt_compression_type = "1";
                     compressionFormat = DDS_CompressionFormat.DXT1;
                     break;
 
@@ -2094,66 +2094,22 @@ namespace JSRF_ModTool
             // if texture is swizzeled
             if (swizzled == 1)
             {
-                // DXT textures are swizzled per 4x4 blocks.
-                int swizzleResolution = res_x;
-                if (dxt_compression_type == "dxt1" || dxt_compression_type == "dxt3")
-                {
-                    swizzleResolution = Math.Max(1, res_x / 4);
-                }
+                byte[] data_unswizz = DataFormats.Xbox.TextureSwizzle.QuadtreeUnswizzle(data_noheader, res_x);
+                //byte[] dds_header_1 = GenerateDdsHeader(compressionFormat, res_x, mipmap_count);
 
-                byte[] data_unswizz = DataFormats.Xbox.TextureSwizzle.QuadtreeUnswizzle(data_noheader, swizzleResolution);
+                //System.Buffer.BlockCopy(dds_header_1, 0, texture_file, 0, dds_header_1.Length);
+                //System.Buffer.BlockCopy(data_unswizz, 0, texture_file, dds_header_1.Length, data_unswizz.Length);
 
-                System.Buffer.BlockCopy(dds_header, 0, texture_file, 0, dds_header.Length);
-                System.Buffer.BlockCopy(data_unswizz, 0, texture_file, dds_header.Length, data_unswizz.Length);
+                var bmp = new Bmp(data_unswizz, res_x);
+                var im = new MagickImage(bmp.ToByteArray(), 0, bmp.Size, MagickFormat.Bmp);
+                im.ToBitmap().Save(tmp_dir + "\\tmp.png");
 
-                string filename = "tmp";
 
-                if (by_id) { filename = id.ToString(); }
-
-                Parsing.ByteArrayToFile(tmp_dir + "\\" + filename + ".dds", texture_file);
-
-                #region convert dds to png
-
-                string args = "-i=" + filename + ".dds -o=" + filename + ".png -genmipmaps=1";
-
-                Process proc = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        WorkingDirectory = startup_dir + "\\resources\\tmp\\",
-                        FileName = startup_dir + "\\resources\\tools\\VampConvert.exe",
-                        Arguments = args,
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        CreateNoWindow = true
-                    }
-                };
-
-                proc.Start();
-                proc.WaitForExit();
-                proc.Dispose();
-
-                if (!File.Exists(tmp_dir + filename + ".png"))
-                {
-                    MessageBox.Show("Could not load texture file: \n" + tmp_dir + filename + ".png");
-                    return "";
-                }
-
-                #endregion
-
-                if (!silent)
-                {
-                    Stream BitmapStream = System.IO.File.Open(tmp_dir + filename + ".png", System.IO.FileMode.Open);
-                    Image imgPhoto = Image.FromStream(BitmapStream, true);
-
-                    BitmapStream.Dispose();
-                    BitmapStream.Close();
-
-                    Image bmp = new Bitmap(imgPhoto);
-                    pictureBox_texture_editor.Image = bmp;
-                }
+                Image image = im.ToBitmap();
+                pictureBox_texture_editor.Image = image;
 
                 return id.ToString();
+               // Bitmap unswizelled_texture = im.ToBitmap();
 
             } 
             else // regular texture (no swizzle)
@@ -3486,10 +3442,6 @@ namespace JSRF_ModTool
 
             switch (dxt_format)
             {
-                case 1:
-                    dxt_compression_type = "dxt1";
-                    break;
-
                 case 5:
                     dxt_compression_type = "dxt1";
                     break;
@@ -3597,8 +3549,6 @@ namespace JSRF_ModTool
             texture_header[21] = wb[1];
             texture_header[22] = wb[2];
             texture_header[23] = wb[3];
-            // Force unswizzled import so edited textures do not require swizzle repacking.
-            texture_header[26] = 0;
 
 
             // copy jsrf texture header to new_texture
