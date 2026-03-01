@@ -2092,7 +2092,7 @@ namespace JSRF_ModTool
 
 
             // if texture is swizzeled
-            if (swizzled == 1)
+            if (false && swizzled == 1)
             {
                 byte[] data_unswizz = DataFormats.Xbox.TextureSwizzle.QuadtreeUnswizzle(data_noheader, res_x);
                 //byte[] dds_header_1 = GenerateDdsHeader(compressionFormat, res_x, mipmap_count);
